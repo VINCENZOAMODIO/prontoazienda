@@ -63,17 +63,17 @@ export default function Home() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <a
-            href="#prova"
+            href="/preventivo"
             className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
           >
-            Provalo gratis
+            Crea un preventivo
           </a>
 
           <a
-            href="#come-funziona"
+            href="/preventivi"
             className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
           >
-            Come funziona
+            Vedi preventivi
           </a>
         </div>
 
