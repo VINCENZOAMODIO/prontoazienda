@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
 import { supabase } from "@/lib/supabase";
 
@@ -12,6 +13,9 @@ type Cliente = {
 };
 
 export default function PreventivoPage() {
+  const searchParams = useSearchParams();
+  const clienteIdUrl = searchParams.get("clienteId");
+
   const [clienti, setClienti] = useState<Cliente[]>([]);
   const [clienteId, setClienteId] = useState("");
   const [cliente, setCliente] = useState("");
@@ -36,11 +40,23 @@ export default function PreventivoPage() {
         return;
       }
 
-      setClienti(data || []);
+      const clientiCaricati = data || [];
+      setClienti(clientiCaricati);
+
+      if (clienteIdUrl) {
+        const clienteSelezionato = clientiCaricati.find(
+          (c) => c.id === clienteIdUrl
+        );
+
+        if (clienteSelezionato) {
+          setClienteId(clienteSelezionato.id);
+          setCliente(clienteSelezionato.nome);
+        }
+      }
     }
 
     caricaClienti();
-  }, []);
+  }, [clienteIdUrl]);
 
   function selezionaCliente(id: string) {
     setClienteId(id);

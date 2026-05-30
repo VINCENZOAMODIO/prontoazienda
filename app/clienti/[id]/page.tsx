@@ -104,12 +104,12 @@ export default function DettaglioClientePage() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-2xl font-bold">Preventivi del cliente</h2>
 
-            <a
-              href="/preventivo"
-              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-            >
-              Nuovo preventivo
-            </a>
+<a
+  href={`/preventivo?clienteId=${cliente.id}`}
+  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+>
+  Nuovo preventivo
+</a>
           </div>
 
           {preventivi.length === 0 ? (
