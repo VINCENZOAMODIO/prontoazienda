@@ -86,6 +86,26 @@ export default function DettaglioPreventivo() {
     doc.save(`preventivo-${preventivo.cliente}.pdf`);
   }
 
+  async function eliminaPreventivo() {
+    const conferma = confirm(
+      "Sei sicuro di voler eliminare questo preventivo?"
+    );
+
+    if (!conferma || !preventivo) return;
+
+    const { error } = await supabase
+      .from("preventivi")
+      .delete()
+      .eq("id", preventivo.id);
+
+    if (error) {
+      alert("Errore eliminazione: " + error.message);
+      return;
+    }
+
+    window.location.href = "/preventivi";
+  }
+
   if (loading) {
     return <div className="p-10">Caricamento...</div>;
   }
@@ -134,6 +154,14 @@ export default function DettaglioPreventivo() {
             className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
           >
             Scarica PDF
+          </button>
+
+          <button
+            type="button"
+            onClick={eliminaPreventivo}
+            className="mt-3 w-full rounded-xl border border-red-300 px-6 py-3 font-semibold text-red-600 hover:bg-red-50"
+          >
+            Elimina preventivo
           </button>
         </div>
       </div>
