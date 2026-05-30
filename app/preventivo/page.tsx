@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import jsPDF from "jspdf";
+import { supabase } from "@/lib/supabase";
 
 export default function PreventivoPage() {
   const [cliente, setCliente] = useState("");
@@ -14,8 +15,7 @@ export default function PreventivoPage() {
   const totaleIva = imponibile * (ivaNumero / 100);
   const totale = imponibile + totaleIva;
 
-  function scaricaPDF() {
-
+async function scaricaPDF() {
   const doc = new jsPDF();
 
   doc.setFontSize(22);
@@ -49,6 +49,22 @@ export default function PreventivoPage() {
   doc.setFontSize(16);
 
   doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
+
+const { error } = await supabase.from("preventivi").insert([
+  {
+    cliente: cliente || "Nome cliente",
+    descrizione: descrizione || "Descrizione del lavoro da svolgere",
+    prezzo: imponibile,
+    iva: ivaNumero,
+    totale: totale,
+  },
+]);
+
+if (error) {
+  alert("Errore salvataggio preventivo: " + error.message);
+  console.error(error);
+  return;
+}
 
   doc.save(`preventivo-${cliente || "cliente"}.pdf`);
 
