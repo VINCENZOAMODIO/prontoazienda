@@ -24,14 +24,15 @@ export default function PreventiviPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-if (error) {
-  alert("Errore caricamento preventivi: " + error.message);
-  console.error(error);
-} else {
-  setPreventivi(data || []);
-}
+      if (error) {
+        alert("Errore caricamento preventivi: " + error.message);
+        console.error(error);
+      } else {
+        setPreventivi(data || []);
+      }
 
-setLoading(false);
+      setLoading(false);
+    }
 
     caricaPreventivi();
   }, []);
@@ -67,14 +68,16 @@ setLoading(false);
                     <th className="p-4">Data</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {preventivi.map((preventivo) => (
                     <tr
-                        key={preventivo.id}
-                        className="border-t cursor-pointer hover:bg-gray-50"
-                        onClick={() =>
-                            (window.location.href = `/preventivi/${preventivo.id}`)
-                    }>
+                      key={preventivo.id}
+                      className="cursor-pointer border-t hover:bg-gray-50"
+                      onClick={() =>
+                        (window.location.href = `/preventivi/${preventivo.id}`)
+                      }
+                    >
                       <td className="p-4 font-medium">{preventivo.cliente}</td>
                       <td className="p-4">
                         € {Number(preventivo.totale).toFixed(2)}

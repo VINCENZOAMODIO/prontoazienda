@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import jsPDF from "jspdf";
 
 type Preventivo = {
   id: string;
@@ -45,6 +46,46 @@ export default function DettaglioPreventivo() {
     }
   }, [id]);
 
+  function scaricaPDF() {
+    if (!preventivo) return;
+
+    const doc = new jsPDF();
+
+    doc.setFontSize(22);
+    doc.text("Preventivo", 20, 20);
+
+    doc.setFontSize(12);
+    doc.text("Generato con ProntoAzienda", 20, 30);
+
+    doc.line(20, 38, 190, 38);
+
+    doc.setFontSize(14);
+    doc.text(`Cliente: ${preventivo.cliente}`, 20, 50);
+
+    doc.setFontSize(12);
+    doc.text("Descrizione lavoro:", 20, 65);
+    doc.text(preventivo.descrizione, 20, 75, {
+      maxWidth: 160,
+    });
+
+    doc.text(
+      `Imponibile: € ${Number(preventivo.prezzo).toFixed(2)}`,
+      20,
+      110
+    );
+
+    doc.text(`IVA ${preventivo.iva}%`, 20, 120);
+
+    doc.setFontSize(16);
+    doc.text(
+      `Totale: € ${Number(preventivo.totale).toFixed(2)}`,
+      20,
+      140
+    );
+
+    doc.save(`preventivo-${preventivo.cliente}.pdf`);
+  }
+
   if (loading) {
     return <div className="p-10">Caricamento...</div>;
   }
@@ -86,6 +127,14 @@ export default function DettaglioPreventivo() {
               Totale: € {Number(preventivo.totale).toFixed(2)}
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={scaricaPDF}
+            className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+          >
+            Scarica PDF
+          </button>
         </div>
       </div>
     </main>
