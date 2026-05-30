@@ -24,12 +24,14 @@ export default function PreventiviPage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        setPreventivi(data);
-      }
+if (error) {
+  alert("Errore caricamento preventivi: " + error.message);
+  console.error(error);
+} else {
+  setPreventivi(data || []);
+}
 
-      setLoading(false);
-    }
+setLoading(false);
 
     caricaPreventivi();
   }, []);
