@@ -67,7 +67,12 @@ export default function PreventiviPage() {
                 </thead>
                 <tbody>
                   {preventivi.map((preventivo) => (
-                    <tr key={preventivo.id} className="border-t">
+                    <tr
+                        key={preventivo.id}
+                        className="border-t cursor-pointer hover:bg-gray-50"
+                        onClick={() =>
+                            (window.location.href = `/preventivi/${preventivo.id}`)
+                    }>
                       <td className="p-4 font-medium">{preventivo.cliente}</td>
                       <td className="p-4">
                         € {Number(preventivo.totale).toFixed(2)}
