@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import jsPDF from "jspdf";
 
 export default function PreventivoPage() {
   const [cliente, setCliente] = useState("");
@@ -12,6 +13,46 @@ export default function PreventivoPage() {
   const ivaNumero = Number(iva) || 0;
   const totaleIva = imponibile * (ivaNumero / 100);
   const totale = imponibile + totaleIva;
+
+  function scaricaPDF() {
+
+  const doc = new jsPDF();
+
+  doc.setFontSize(22);
+
+  doc.text("Preventivo", 20, 20);
+
+  doc.setFontSize(12);
+
+  doc.text("Generato con ProntoAzienda", 20, 30);
+
+  doc.line(20, 38, 190, 38);
+
+  doc.setFontSize(14);
+
+  doc.text(`Cliente: ${cliente || "Nome cliente"}`, 20, 50);
+
+  doc.setFontSize(12);
+
+  doc.text("Descrizione lavoro:", 20, 65);
+
+  doc.text(descrizione || "Descrizione del lavoro da svolgere", 20, 75, {
+
+    maxWidth: 160,
+
+  });
+
+  doc.text(`Imponibile: € ${imponibile.toFixed(2)}`, 20, 110);
+
+  doc.text(`IVA ${ivaNumero}%: € ${totaleIva.toFixed(2)}`, 20, 120);
+
+  doc.setFontSize(16);
+
+  doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
+
+  doc.save(`preventivo-${cliente || "cliente"}.pdf`);
+
+}
 
   return (
     <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
@@ -114,7 +155,7 @@ export default function PreventivoPage() {
 
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={scaricaPDF}
                 className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
               >
                 Stampa / Salva PDF
