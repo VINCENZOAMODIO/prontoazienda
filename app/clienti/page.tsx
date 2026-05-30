@@ -63,8 +63,12 @@ export default function ClientiPage() {
 
                 <tbody>
                   {clienti.map((cliente) => (
-                    <tr key={cliente.id} className="border-t">
-                      <td className="p-4">{cliente.nome}</td>
+                    <tr
+                        key={cliente.id}
+                        className="cursor-pointer border-t hover:bg-gray-50"
+                        onClick={() => (window.location.href = `/clienti/${cliente.id}`)}>
+                                                  
+                        <td className="p-4">{cliente.nome}</td>
                       <td className="p-4">{cliente.telefono}</td>
                       <td className="p-4">{cliente.email}</td>
                     </tr>

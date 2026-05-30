@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import { supabase } from "@/lib/supabase";
 
+type Cliente = {
+  id: string;
+  nome: string;
+  telefono: string;
+  email: string;
+};
+
 export default function PreventivoPage() {
+  const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [clienteId, setClienteId] = useState("");
   const [cliente, setCliente] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [prezzo, setPrezzo] = useState("");
@@ -15,60 +24,79 @@ export default function PreventivoPage() {
   const totaleIva = imponibile * (ivaNumero / 100);
   const totale = imponibile + totaleIva;
 
-async function scaricaPDF() {
-  const doc = new jsPDF();
+  useEffect(() => {
+    async function caricaClienti() {
+      const { data, error } = await supabase
+        .from("clienti")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  doc.setFontSize(22);
+      if (error) {
+        console.error(error);
+        return;
+      }
 
-  doc.text("Preventivo", 20, 20);
+      setClienti(data || []);
+    }
 
-  doc.setFontSize(12);
+    caricaClienti();
+  }, []);
 
-  doc.text("Generato con ProntoAzienda", 20, 30);
+  function selezionaCliente(id: string) {
+    setClienteId(id);
 
-  doc.line(20, 38, 190, 38);
+    const clienteSelezionato = clienti.find((c) => c.id === id);
 
-  doc.setFontSize(14);
+    if (clienteSelezionato) {
+      setCliente(clienteSelezionato.nome);
+    }
+  }
 
-  doc.text(`Cliente: ${cliente || "Nome cliente"}`, 20, 50);
+  async function scaricaPDF() {
+    const doc = new jsPDF();
 
-  doc.setFontSize(12);
+    doc.setFontSize(22);
+    doc.text("Preventivo", 20, 20);
 
-  doc.text("Descrizione lavoro:", 20, 65);
+    doc.setFontSize(12);
+    doc.text("Generato con ProntoAzienda", 20, 30);
 
-  doc.text(descrizione || "Descrizione del lavoro da svolgere", 20, 75, {
+    doc.line(20, 38, 190, 38);
 
-    maxWidth: 160,
+    doc.setFontSize(14);
+    doc.text(`Cliente: ${cliente || "Nome cliente"}`, 20, 50);
 
-  });
+    doc.setFontSize(12);
+    doc.text("Descrizione lavoro:", 20, 65);
+    doc.text(descrizione || "Descrizione del lavoro da svolgere", 20, 75, {
+      maxWidth: 160,
+    });
 
-  doc.text(`Imponibile: € ${imponibile.toFixed(2)}`, 20, 110);
+    doc.text(`Imponibile: € ${imponibile.toFixed(2)}`, 20, 110);
+    doc.text(`IVA ${ivaNumero}%: € ${totaleIva.toFixed(2)}`, 20, 120);
 
-  doc.text(`IVA ${ivaNumero}%: € ${totaleIva.toFixed(2)}`, 20, 120);
+    doc.setFontSize(16);
+    doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
 
-  doc.setFontSize(16);
+    const { error } = await supabase.from("preventivi").insert([
+      {
+        cliente: cliente || "Nome cliente",
+        cliente_id: clienteId || null,
+        descrizione: descrizione || "Descrizione del lavoro da svolgere",
+        prezzo: imponibile,
+        iva: ivaNumero,
+        totale: totale,
+      },
+    ]);
 
-  doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
+    if (error) {
+      alert("Errore salvataggio preventivo: " + error.message);
+      console.error(error);
+      return;
+    }
 
-const { error } = await supabase.from("preventivi").insert([
-  {
-    cliente: cliente || "Nome cliente",
-    descrizione: descrizione || "Descrizione del lavoro da svolgere",
-    prezzo: imponibile,
-    iva: ivaNumero,
-    totale: totale,
-  },
-]);
-
-if (error) {
-  alert("Errore salvataggio preventivo: " + error.message);
-  console.error(error);
-  return;
-}
-
-  doc.save(`preventivo-${cliente || "cliente"}.pdf`);
-
-}
+    doc.save(`preventivo-${cliente || "cliente"}.pdf`);
+  }
 
   return (
     <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
@@ -77,9 +105,7 @@ if (error) {
           ← Torna alla home
         </a>
 
-        <h1 className="mt-8 text-4xl font-bold">
-          Crea un preventivo
-        </h1>
+        <h1 className="mt-8 text-4xl font-bold">Crea un preventivo</h1>
 
         <p className="mt-3 text-gray-600">
           Compila i dati e genera un preventivo semplice da inviare al cliente.
@@ -90,11 +116,27 @@ if (error) {
             <h2 className="text-xl font-bold">Dati preventivo</h2>
 
             <div className="mt-6 grid gap-4">
+              <select
+                className="rounded-xl border px-4 py-3"
+                value={clienteId}
+                onChange={(e) => selezionaCliente(e.target.value)}
+              >
+                <option value="">Scegli cliente salvato</option>
+                {clienti.map((cliente) => (
+                  <option key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </option>
+                ))}
+              </select>
+
               <input
                 className="rounded-xl border px-4 py-3"
-                placeholder="Nome cliente"
+                placeholder="Oppure scrivi nome cliente"
                 value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
+                onChange={(e) => {
+                  setCliente(e.target.value);
+                  setClienteId("");
+                }}
               />
 
               <textarea
@@ -130,6 +172,7 @@ if (error) {
                   Generato con ProntoAzienda
                 </p>
               </div>
+
               <span className="rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-700">
                 Bozza
               </span>
@@ -174,7 +217,7 @@ if (error) {
                 onClick={scaricaPDF}
                 className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
               >
-                Stampa / Salva PDF
+                Scarica PDF
               </button>
             </div>
           </div>
