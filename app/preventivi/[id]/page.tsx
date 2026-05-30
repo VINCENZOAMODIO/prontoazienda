@@ -148,21 +148,30 @@ export default function DettaglioPreventivo() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={scaricaPDF}
-            className="mt-6 w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-          >
-            Scarica PDF
-          </button>
+<div className="mt-6 flex flex-col gap-3">
+  <button
+    type="button"
+    onClick={scaricaPDF}
+    className="w-full rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+  >
+    Scarica PDF
+  </button>
 
-          <button
-            type="button"
-            onClick={eliminaPreventivo}
-            className="mt-3 w-full rounded-xl border border-red-300 px-6 py-3 font-semibold text-red-600 hover:bg-red-50"
-          >
-            Elimina preventivo
-          </button>
+  <a
+    href={`/preventivi/${preventivo.id}/modifica`}
+    className="w-full rounded-xl border border-gray-300 px-6 py-3 text-center font-semibold hover:bg-gray-50"
+  >
+    Modifica preventivo
+  </a>
+
+  <button
+    type="button"
+    onClick={eliminaPreventivo}
+    className="w-full rounded-xl border border-red-300 px-6 py-3 font-semibold text-red-600 hover:bg-red-50"
+  >
+    Elimina preventivo
+  </button>
+</div>
         </div>
       </div>
     </main>
