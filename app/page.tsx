@@ -75,6 +75,20 @@ export default function Home() {
           >
             Vedi preventivi
           </a>
+
+          <a
+            href="/dashboard"
+            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+          >
+            Dashboard
+          </a>
+
+          <a
+            href="/clienti"
+            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+          >
+            Clienti
+          </a>
         </div>
 
         <div
@@ -108,6 +122,7 @@ export default function Home() {
           className="mt-16 w-full max-w-xl rounded-2xl border bg-gray-50 p-6 text-left"
         >
           <h2 className="text-2xl font-bold">Vuoi provarlo gratis?</h2>
+
           <p className="mt-2 text-gray-600">
             Lascia i tuoi dati. Stiamo cercando i primi tester.
           </p>
