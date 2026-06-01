@@ -65,6 +65,23 @@ export default function DettaglioClientePage() {
     if (id) caricaDatiCliente();
   }, [id]);
 
+  async function eliminaCliente() {
+    const conferma = confirm(
+      "Sei sicuro di voler eliminare questo cliente? I preventivi già creati resteranno salvati."
+    );
+
+    if (!conferma || !cliente) return;
+
+    const { error } = await supabase.from("clienti").delete().eq("id", cliente.id);
+
+    if (error) {
+      alert("Errore eliminazione cliente: " + error.message);
+      return;
+    }
+
+    window.location.href = "/clienti";
+  }
+
   if (loading) {
     return <div className="p-10">Caricamento...</div>;
   }
@@ -80,7 +97,26 @@ export default function DettaglioClientePage() {
           ← Torna ai clienti
         </a>
 
-        <h1 className="mt-6 text-4xl font-bold">{cliente.nome}</h1>
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-4xl font-bold">{cliente.nome}</h1>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href={`/clienti/${cliente.id}/modifica`}
+              className="rounded-xl border border-gray-300 px-4 py-2 text-center text-sm font-semibold hover:bg-gray-50"
+            >
+              Modifica cliente
+            </a>
+
+            <button
+              type="button"
+              onClick={eliminaCliente}
+              className="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
+            >
+              Elimina cliente
+            </button>
+          </div>
+        </div>
 
         <div className="mt-8 rounded-2xl border p-6">
           <p>
@@ -104,12 +140,12 @@ export default function DettaglioClientePage() {
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-2xl font-bold">Preventivi del cliente</h2>
 
-<a
-  href={`/preventivo?clienteId=${cliente.id}`}
-  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
->
-  Nuovo preventivo
-</a>
+            <a
+              href={`/preventivo?clienteId=${cliente.id}`}
+              className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              Nuovo preventivo
+            </a>
           </div>
 
           {preventivi.length === 0 ? (
