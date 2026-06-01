@@ -94,16 +94,17 @@ export default function PreventivoPage() {
     doc.setFontSize(16);
     doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
 
-    const { error } = await supabase.from("preventivi").insert([
-      {
-        cliente: cliente || "Nome cliente",
-        cliente_id: clienteId || null,
-        descrizione: descrizione || "Descrizione del lavoro da svolgere",
-        prezzo: imponibile,
-        iva: ivaNumero,
-        totale: totale,
-      },
-    ]);
+const { error } = await supabase.from("preventivi").insert([
+  {
+    cliente: cliente || "Nome cliente",
+    cliente_id: clienteId || null,
+    descrizione: descrizione || "Descrizione del lavoro da svolgere",
+    prezzo: imponibile,
+    iva: ivaNumero,
+    totale: totale,
+    stato: "Bozza",
+  },
+]);
 
     if (error) {
       alert("Errore salvataggio preventivo: " + error.message);

@@ -13,6 +13,7 @@ type Preventivo = {
   prezzo: number;
   iva: number;
   totale: number;
+  stato: string;
   created_at: string;
 };
 
@@ -28,9 +29,12 @@ export default function DettaglioPreventivo() {
   const id = params.id as string;
 
   const [preventivo, setPreventivo] = useState<Preventivo | null>(null);
-  const [clienteCollegato, setClienteCollegato] = useState<Cliente | null>(null);
+  const [clienteCollegato, setClienteCollegato] = useState<Cliente | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [errore, setErrore] = useState("");
+  const [salvandoStato, setSalvandoStato] = useState(false);
 
   useEffect(() => {
     async function caricaPreventivo() {
@@ -151,6 +155,29 @@ Cordiali saluti.`;
     window.open(url, "_blank");
   }
 
+  async function cambiaStato(nuovoStato: string) {
+    if (!preventivo) return;
+
+    setSalvandoStato(true);
+
+    const { error } = await supabase
+      .from("preventivi")
+      .update({ stato: nuovoStato })
+      .eq("id", preventivo.id);
+
+    setSalvandoStato(false);
+
+    if (error) {
+      alert("Errore aggiornamento stato: " + error.message);
+      return;
+    }
+
+    setPreventivo({
+      ...preventivo,
+      stato: nuovoStato,
+    });
+  }
+
   async function eliminaPreventivo() {
     const conferma = confirm(
       "Sei sicuro di voler eliminare questo preventivo?"
@@ -169,6 +196,13 @@ Cordiali saluti.`;
     }
 
     window.location.href = "/preventivi";
+  }
+
+  function coloreStato(stato: string) {
+    if (stato === "Accettato") return "bg-green-50 text-green-700";
+    if (stato === "Rifiutato") return "bg-red-50 text-red-700";
+    if (stato === "Inviato") return "bg-yellow-50 text-yellow-700";
+    return "bg-gray-50 text-gray-700";
   }
 
   if (loading) {
@@ -191,7 +225,17 @@ Cordiali saluti.`;
           ← Torna ai preventivi
         </a>
 
-        <h1 className="mt-6 text-4xl font-bold">Preventivo</h1>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-4xl font-bold">Preventivo</h1>
+
+          <span
+            className={`rounded-full px-4 py-2 text-sm font-semibold ${coloreStato(
+              preventivo.stato || "Bozza"
+            )}`}
+          >
+            {preventivo.stato || "Bozza"}
+          </span>
+        </div>
 
         <div className="mt-8 rounded-2xl border p-6">
           <p>
@@ -204,7 +248,28 @@ Cordiali saluti.`;
             </p>
           )}
 
-          <p className="mt-4">
+          <div className="mt-6">
+            <label className="text-sm font-semibold text-gray-600">
+              Stato preventivo
+            </label>
+
+            <select
+              className="mt-2 w-full rounded-xl border px-4 py-3"
+              value={preventivo.stato || "Bozza"}
+              onChange={(e) => cambiaStato(e.target.value)}
+            >
+              <option value="Bozza">Bozza</option>
+              <option value="Inviato">Inviato</option>
+              <option value="Accettato">Accettato</option>
+              <option value="Rifiutato">Rifiutato</option>
+            </select>
+
+            {salvandoStato && (
+              <p className="mt-2 text-sm text-gray-500">Salvataggio stato...</p>
+            )}
+          </div>
+
+          <p className="mt-6">
             <strong>Descrizione:</strong>
           </p>
 
