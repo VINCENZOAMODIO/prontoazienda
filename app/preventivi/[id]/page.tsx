@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 type Preventivo = {
   id: string;
   cliente: string;
+  cliente_id: string | null;
   descrizione: string;
   prezzo: number;
   iva: number;
@@ -15,11 +16,19 @@ type Preventivo = {
   created_at: string;
 };
 
+type Cliente = {
+  id: string;
+  nome: string;
+  telefono: string | null;
+  email: string | null;
+};
+
 export default function DettaglioPreventivo() {
   const params = useParams();
   const id = params.id as string;
 
   const [preventivo, setPreventivo] = useState<Preventivo | null>(null);
+  const [clienteCollegato, setClienteCollegato] = useState<Cliente | null>(null);
   const [loading, setLoading] = useState(true);
   const [errore, setErrore] = useState("");
 
@@ -34,8 +43,22 @@ export default function DettaglioPreventivo() {
       if (error) {
         console.error(error);
         setErrore(error.message);
-      } else {
-        setPreventivo(data);
+        setLoading(false);
+        return;
+      }
+
+      setPreventivo(data);
+
+      if (data.cliente_id) {
+        const { data: clienteData, error: clienteError } = await supabase
+          .from("clienti")
+          .select("*")
+          .eq("id", data.cliente_id)
+          .single();
+
+        if (!clienteError) {
+          setClienteCollegato(clienteData);
+        }
       }
 
       setLoading(false);
@@ -86,6 +109,24 @@ export default function DettaglioPreventivo() {
     doc.save(`preventivo-${preventivo.cliente}.pdf`);
   }
 
+  function pulisciNumeroTelefono(numero: string) {
+    let pulito = numero.replace(/\D/g, "");
+
+    if (pulito.startsWith("00")) {
+      pulito = pulito.slice(2);
+    }
+
+    if (pulito.startsWith("0")) {
+      pulito = "39" + pulito.slice(1);
+    }
+
+    if (!pulito.startsWith("39")) {
+      pulito = "39" + pulito;
+    }
+
+    return pulito;
+  }
+
   function inviaWhatsApp() {
     if (!preventivo) return;
 
@@ -99,7 +140,13 @@ Totale: € ${Number(preventivo.totale).toFixed(2)}
 
 Cordiali saluti.`;
 
-    const url = `https://wa.me/?text=${encodeURIComponent(testo)}`;
+    const telefono = clienteCollegato?.telefono
+      ? pulisciNumeroTelefono(clienteCollegato.telefono)
+      : "";
+
+    const url = telefono
+      ? `https://wa.me/${telefono}?text=${encodeURIComponent(testo)}`
+      : `https://wa.me/?text=${encodeURIComponent(testo)}`;
 
     window.open(url, "_blank");
   }
@@ -151,6 +198,12 @@ Cordiali saluti.`;
             <strong>Cliente:</strong> {preventivo.cliente}
           </p>
 
+          {clienteCollegato?.telefono && (
+            <p className="mt-3">
+              <strong>Telefono:</strong> {clienteCollegato.telefono}
+            </p>
+          )}
+
           <p className="mt-4">
             <strong>Descrizione:</strong>
           </p>
@@ -175,20 +228,20 @@ Cordiali saluti.`;
               Scarica PDF
             </button>
 
-<button
-  type="button"
-  onClick={inviaWhatsApp}
-  style={{
-    backgroundColor: "#25D366",
-    color: "white",
-    padding: "12px",
-    borderRadius: "12px",
-    fontWeight: "bold",
-    width: "100%",
-  }}
->
-  📱 Invia su WhatsApp
-</button>
+            <button
+              type="button"
+              onClick={inviaWhatsApp}
+              style={{
+                backgroundColor: "#25D366",
+                color: "white",
+                padding: "12px",
+                borderRadius: "12px",
+                fontWeight: "bold",
+                width: "100%",
+              }}
+            >
+              📱 Invia su WhatsApp
+            </button>
 
             <a
               href={`/preventivi/${preventivo.id}/modifica`}
