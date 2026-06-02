@@ -13,6 +13,7 @@ type Cliente = {
 
 export default function ClientiPage() {
   const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [ricerca, setRicerca] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +35,16 @@ export default function ClientiPage() {
     caricaClienti();
   }, []);
 
+  const clientiFiltrati = clienti.filter((cliente) => {
+    const testo = ricerca.toLowerCase();
+
+    return (
+      cliente.nome?.toLowerCase().includes(testo) ||
+      cliente.telefono?.toLowerCase().includes(testo) ||
+      cliente.email?.toLowerCase().includes(testo)
+    );
+  });
+
   return (
     <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
       <div className="mx-auto max-w-5xl">
@@ -41,14 +52,41 @@ export default function ClientiPage() {
           ← Torna alla home
         </a>
 
-        <h1 className="mt-6 text-4xl font-bold">Clienti</h1>
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-4xl font-bold">Clienti</h1>
+            <p className="mt-2 text-gray-600">
+              Cerca e gestisci i tuoi clienti.
+            </p>
+          </div>
+
+          <a
+            href="/clienti/nuovo"
+            className="rounded-xl bg-blue-600 px-6 py-3 text-center font-semibold text-white hover:bg-blue-700"
+          >
+            Nuovo cliente
+          </a>
+        </div>
 
         <div className="mt-8">
+          <input
+            className="w-full rounded-xl border px-4 py-3"
+            placeholder="Cerca cliente per nome, telefono o email..."
+            value={ricerca}
+            onChange={(e) => setRicerca(e.target.value)}
+          />
+        </div>
+
+        <div className="mt-6">
           {loading ? (
             <p>Caricamento...</p>
           ) : clienti.length === 0 ? (
             <div className="rounded-2xl border bg-gray-50 p-6">
               Nessun cliente presente.
+            </div>
+          ) : clientiFiltrati.length === 0 ? (
+            <div className="rounded-2xl border bg-gray-50 p-6">
+              Nessun cliente trovato.
             </div>
           ) : (
             <div className="overflow-hidden rounded-2xl border">
@@ -62,13 +100,15 @@ export default function ClientiPage() {
                 </thead>
 
                 <tbody>
-                  {clienti.map((cliente) => (
+                  {clientiFiltrati.map((cliente) => (
                     <tr
-                        key={cliente.id}
-                        className="cursor-pointer border-t hover:bg-gray-50"
-                        onClick={() => (window.location.href = `/clienti/${cliente.id}`)}>
-                                                  
-                        <td className="p-4">{cliente.nome}</td>
+                      key={cliente.id}
+                      className="cursor-pointer border-t hover:bg-gray-50"
+                      onClick={() =>
+                        (window.location.href = `/clienti/${cliente.id}`)
+                      }
+                    >
+                      <td className="p-4 font-medium">{cliente.nome}</td>
                       <td className="p-4">{cliente.telefono}</td>
                       <td className="p-4">{cliente.email}</td>
                     </tr>
@@ -77,15 +117,6 @@ export default function ClientiPage() {
               </table>
             </div>
           )}
-        </div>
-
-        <div className="mt-8">
-          <a
-            href="/clienti/nuovo"
-            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-          >
-            Nuovo cliente
-          </a>
         </div>
       </div>
     </main>

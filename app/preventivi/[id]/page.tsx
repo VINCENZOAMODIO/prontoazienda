@@ -178,6 +178,33 @@ Cordiali saluti.`;
     });
   }
 
+  async function duplicaPreventivo() {
+  if (!preventivo) return;
+
+  const { data, error } = await supabase
+    .from("preventivi")
+    .insert([
+      {
+        cliente: preventivo.cliente,
+        cliente_id: preventivo.cliente_id,
+        descrizione: preventivo.descrizione,
+        prezzo: preventivo.prezzo,
+        iva: preventivo.iva,
+        totale: preventivo.totale,
+        stato: "Bozza",
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    alert("Errore duplicazione: " + error.message);
+    return;
+  }
+
+  window.location.href = `/preventivi/${data.id}`;
+}
+
   async function eliminaPreventivo() {
     const conferma = confirm(
       "Sei sicuro di voler eliminare questo preventivo?"
@@ -307,6 +334,14 @@ Cordiali saluti.`;
             >
               📱 Invia su WhatsApp
             </button>
+
+            <button
+  type="button"
+  onClick={duplicaPreventivo}
+  className="w-full rounded-xl border border-blue-300 px-6 py-3 font-semibold text-blue-600 hover:bg-blue-50"
+>
+  📄 Duplica preventivo
+</button>
 
             <a
               href={`/preventivi/${preventivo.id}/modifica`}

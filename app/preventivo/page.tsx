@@ -12,16 +12,26 @@ type Cliente = {
   email: string;
 };
 
+type Impostazioni = {
+  nome_azienda: string | null;
+  email: string | null;
+  telefono: string | null;
+  indirizzo: string | null;
+};
+
 export default function PreventivoPage() {
   const searchParams = useSearchParams();
   const clienteIdUrl = searchParams.get("clienteId");
 
   const [clienti, setClienti] = useState<Cliente[]>([]);
+  const [impostazioni, setImpostazioni] = useState<Impostazioni | null>(null);
+
   const [clienteId, setClienteId] = useState("");
   const [cliente, setCliente] = useState("");
   const [descrizione, setDescrizione] = useState("");
   const [prezzo, setPrezzo] = useState("");
   const [iva, setIva] = useState("22");
+  const [logo, setLogo] = useState<string | null>(null);
 
   const imponibile = Number(prezzo) || 0;
   const ivaNumero = Number(iva) || 0;
@@ -29,33 +39,40 @@ export default function PreventivoPage() {
   const totale = imponibile + totaleIva;
 
   useEffect(() => {
-    async function caricaClienti() {
-      const { data, error } = await supabase
+    async function caricaDati() {
+      const { data: clientiData, error: clientiError } = await supabase
         .from("clienti")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        return;
+      if (!clientiError) {
+        const clientiCaricati = clientiData || [];
+        setClienti(clientiCaricati);
+
+        if (clienteIdUrl) {
+          const clienteSelezionato = clientiCaricati.find(
+            (c) => c.id === clienteIdUrl
+          );
+
+          if (clienteSelezionato) {
+            setClienteId(clienteSelezionato.id);
+            setCliente(clienteSelezionato.nome);
+          }
+        }
       }
 
-      const clientiCaricati = data || [];
-      setClienti(clientiCaricati);
+      const { data: impostazioniData } = await supabase
+        .from("impostazioni")
+        .select("*")
+        .limit(1)
+        .single();
 
-      if (clienteIdUrl) {
-        const clienteSelezionato = clientiCaricati.find(
-          (c) => c.id === clienteIdUrl
-        );
-
-        if (clienteSelezionato) {
-          setClienteId(clienteSelezionato.id);
-          setCliente(clienteSelezionato.nome);
-        }
+      if (impostazioniData) {
+        setImpostazioni(impostazioniData);
       }
     }
 
-    caricaClienti();
+    caricaDati();
   }, [clienteIdUrl]);
 
   function selezionaCliente(id: string) {
@@ -68,43 +85,94 @@ export default function PreventivoPage() {
     }
   }
 
+  function caricaLogo(file: File | null) {
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setLogo(reader.result as string);
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   async function scaricaPDF() {
+    const { count } = await supabase
+      .from("preventivi")
+      .select("*", { count: "exact", head: true });
+
+    const prossimoNumero = (count || 0) + 1;
+    const numeroPreventivo = `PREV-${String(prossimoNumero).padStart(4, "0")}`;
+
+    const nomeAzienda = impostazioni?.nome_azienda || "ProntoAzienda";
+
     const doc = new jsPDF();
 
+    if (logo) {
+      doc.addImage(logo, "PNG", 20, 15, 28, 28);
+    }
+
+    doc.setFontSize(20);
+    doc.text(nomeAzienda, logo ? 55 : 20, 22);
+
+    doc.setFontSize(10);
+
+    let rigaInfo = 30;
+
+    if (impostazioni?.email) {
+      doc.text(`Email: ${impostazioni.email}`, logo ? 55 : 20, rigaInfo);
+      rigaInfo += 6;
+    }
+
+    if (impostazioni?.telefono) {
+      doc.text(`Tel: ${impostazioni.telefono}`, logo ? 55 : 20, rigaInfo);
+      rigaInfo += 6;
+    }
+
+    if (impostazioni?.indirizzo) {
+      doc.text(
+        `Indirizzo: ${impostazioni.indirizzo}`,
+        logo ? 55 : 20,
+        rigaInfo
+      );
+    }
+
     doc.setFontSize(22);
-    doc.text("Preventivo", 20, 20);
+    doc.text(`Preventivo ${numeroPreventivo}`, 20, 60);
 
     doc.setFontSize(12);
-    doc.text("Generato con ProntoAzienda", 20, 30);
+    doc.text(`Cliente: ${cliente || "Nome cliente"}`, 20, 74);
 
-    doc.line(20, 38, 190, 38);
-
-    doc.setFontSize(14);
-    doc.text(`Cliente: ${cliente || "Nome cliente"}`, 20, 50);
+    doc.line(20, 84, 190, 84);
 
     doc.setFontSize(12);
-    doc.text("Descrizione lavoro:", 20, 65);
-    doc.text(descrizione || "Descrizione del lavoro da svolgere", 20, 75, {
+    doc.text("Descrizione lavoro:", 20, 98);
+    doc.text(descrizione || "Descrizione del lavoro da svolgere", 20, 108, {
       maxWidth: 160,
     });
 
-    doc.text(`Imponibile: € ${imponibile.toFixed(2)}`, 20, 110);
-    doc.text(`IVA ${ivaNumero}%: € ${totaleIva.toFixed(2)}`, 20, 120);
+    doc.text(`Imponibile: € ${imponibile.toFixed(2)}`, 20, 148);
+    doc.text(`IVA ${ivaNumero}%: € ${totaleIva.toFixed(2)}`, 20, 158);
 
     doc.setFontSize(16);
-    doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 140);
+    doc.text(`Totale: € ${totale.toFixed(2)}`, 20, 174);
 
-const { error } = await supabase.from("preventivi").insert([
-  {
-    cliente: cliente || "Nome cliente",
-    cliente_id: clienteId || null,
-    descrizione: descrizione || "Descrizione del lavoro da svolgere",
-    prezzo: imponibile,
-    iva: ivaNumero,
-    totale: totale,
-    stato: "Bozza",
-  },
-]);
+    doc.setFontSize(10);
+    doc.text("Documento generato con ProntoAzienda", 20, 285);
+
+    const { error } = await supabase.from("preventivi").insert([
+      {
+        numero: numeroPreventivo,
+        cliente: cliente || "Nome cliente",
+        cliente_id: clienteId || null,
+        descrizione: descrizione || "Descrizione del lavoro da svolgere",
+        prezzo: imponibile,
+        iva: ivaNumero,
+        totale: totale,
+        stato: "Bozza",
+      },
+    ]);
 
     if (error) {
       alert("Errore salvataggio preventivo: " + error.message);
@@ -112,7 +180,7 @@ const { error } = await supabase.from("preventivi").insert([
       return;
     }
 
-    doc.save(`preventivo-${cliente || "cliente"}.pdf`);
+    doc.save(`${numeroPreventivo}-${cliente || "cliente"}.pdf`);
   }
 
   return (
@@ -125,7 +193,8 @@ const { error } = await supabase.from("preventivi").insert([
         <h1 className="mt-8 text-4xl font-bold">Crea un preventivo</h1>
 
         <p className="mt-3 text-gray-600">
-          Compila i dati e genera un preventivo semplice da inviare al cliente.
+          Compila i dati e genera un preventivo professionale da inviare al
+          cliente.
         </p>
 
         <div className="mt-10 grid gap-8 md:grid-cols-2">
@@ -133,6 +202,26 @@ const { error } = await supabase.from("preventivi").insert([
             <h2 className="text-xl font-bold">Dati preventivo</h2>
 
             <div className="mt-6 grid gap-4">
+              <div className="rounded-xl border bg-white p-4">
+                <p className="text-sm font-semibold text-gray-600">Azienda</p>
+                <p className="mt-1 font-medium">
+                  {impostazioni?.nome_azienda || "ProntoAzienda"}
+                </p>
+                <a
+                  href="/impostazioni"
+                  className="mt-2 inline-block text-sm text-blue-600"
+                >
+                  Modifica impostazioni azienda
+                </a>
+              </div>
+
+              <input
+                className="rounded-xl border bg-white px-4 py-3"
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e) => caricaLogo(e.target.files?.[0] || null)}
+              />
+
               <select
                 className="rounded-xl border px-4 py-3"
                 value={clienteId}
@@ -186,7 +275,8 @@ const { error } = await supabase.from("preventivi").insert([
               <div>
                 <h2 className="text-2xl font-bold">Preventivo</h2>
                 <p className="text-sm text-gray-500">
-                  Generato con ProntoAzienda
+                  Generato con{" "}
+                  {impostazioni?.nome_azienda || "ProntoAzienda"}
                 </p>
               </div>
 
@@ -196,6 +286,17 @@ const { error } = await supabase.from("preventivi").insert([
             </div>
 
             <div className="mt-6 space-y-5">
+              {logo && (
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Logo</p>
+                  <img
+                    src={logo}
+                    alt="Logo azienda"
+                    className="mt-2 h-16 w-16 rounded-xl border object-contain"
+                  />
+                </div>
+              )}
+
               <div>
                 <p className="text-sm font-medium text-gray-500">Cliente</p>
                 <p className="text-lg font-semibold">
