@@ -173,6 +173,37 @@ export default function Home() {
             )}
           </div>
         </div>
+        <footer className="mt-20 w-full border-t pt-8 text-center text-sm text-gray-500">
+  <p className="font-semibold text-gray-700">
+    ProntoAzienda
+  </p>
+
+  <p className="mt-2">
+    Gestionale per professionisti, artigiani e piccole imprese.
+  </p>
+
+  <div className="mt-4 flex flex-wrap justify-center gap-6">
+    <a href="/preventivo" className="hover:text-blue-600">
+      Preventivi
+    </a>
+
+    <a href="/clienti" className="hover:text-blue-600">
+      Clienti
+    </a>
+
+    <a href="/dashboard" className="hover:text-blue-600">
+      Dashboard
+    </a>
+
+    <a href="/impostazioni" className="hover:text-blue-600">
+      Impostazioni
+    </a>
+  </div>
+
+  <p className="mt-6 text-xs text-gray-400">
+    © 2025 ProntoAzienda - Versione 1.0
+  </p>
+</footer>
       </section>
     </main>
   );
