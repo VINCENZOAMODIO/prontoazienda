@@ -205,6 +205,81 @@ Cordiali saluti.`;
   window.location.href = `/preventivi/${data.id}`;
 }
 
+async function creaFattura() {
+  if (!preventivo) return;
+
+  const { count } = await supabase
+    .from("fatture")
+    .select("*", { count: "exact", head: true });
+
+  const prossimoNumero = (count || 0) + 1;
+
+  const numeroFattura =
+    "FAT-" + String(prossimoNumero).padStart(4, "0");
+
+  const { data, error } = await supabase
+    .from("fatture")
+    .insert([
+      {
+        numero: numeroFattura,
+        cliente: preventivo.cliente,
+        descrizione: preventivo.descrizione,
+        prezzo: preventivo.prezzo,
+        iva: preventivo.iva,
+        totale: preventivo.totale,
+        stato: "Emessa",
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    alert("Errore creazione fattura: " + error.message);
+    return;
+  }
+
+  window.location.href = `/fatture/${data.id}`;
+}
+
+async function convertiInFattura() {
+  if (!preventivo) return;
+
+  const { count } = await supabase
+    .from("fatture")
+    .select("*", { count: "exact", head: true });
+
+  const prossimoNumero = (count || 0) + 1;
+  const numeroFattura = `FAT-${String(prossimoNumero).padStart(4, "0")}`;
+
+  const { data, error } = await supabase
+    .from("fatture")
+    .insert([
+      {
+        numero: numeroFattura,
+        preventivo_id: preventivo.id,
+        cliente_id: preventivo.cliente_id,
+        cliente: preventivo.cliente,
+        descrizione: preventivo.descrizione,
+        prezzo: preventivo.prezzo,
+        iva: preventivo.iva,
+        totale: preventivo.totale,
+        stato: "Emessa",
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) {
+    alert("Errore creazione fattura: " + error.message);
+    return;
+  }
+
+  alert(`Fattura ${numeroFattura} creata con successo`);
+
+  // per ora rimaniamo nella pagina
+  console.log(data);
+}
+
   async function eliminaPreventivo() {
     const conferma = confirm(
       "Sei sicuro di voler eliminare questo preventivo?"
@@ -337,10 +412,33 @@ Cordiali saluti.`;
 
             <button
   type="button"
+  onClick={creaFattura}
+  style={{
+    backgroundColor: "#f97316",
+    color: "white",
+    padding: "12px",
+    borderRadius: "12px",
+    fontWeight: "bold",
+    width: "100%",
+  }}
+>
+  🧾 Crea fattura
+</button>
+
+            <button
+  type="button"
   onClick={duplicaPreventivo}
   className="w-full rounded-xl border border-blue-300 px-6 py-3 font-semibold text-blue-600 hover:bg-blue-50"
 >
   📄 Duplica preventivo
+</button>
+
+<button
+  type="button"
+  onClick={convertiInFattura}
+  className="w-full rounded-xl border border-green-300 px-6 py-3 font-semibold text-green-600 hover:bg-green-50"
+>
+  🧾 Converti in fattura
 </button>
 
             <a

@@ -23,6 +23,9 @@ export default function DashboardPage() {
 
   const [valoreAccettati, setValoreAccettati] = useState(0);
   const [conversione, setConversione] = useState(0);
+  const [fatture, setFatture] = useState(0);
+  const [incassato, setIncassato] = useState(0);
+  const [daIncassare, setDaIncassare] = useState(0);
   const [ultimiPreventivi, setUltimiPreventivi] = useState<UltimoPreventivo[]>(
     []
   );
@@ -37,6 +40,10 @@ export default function DashboardPage() {
         .from("preventivi")
         .select("totale, stato");
 
+        const { data: fattureData } = await supabase
+  .from("fatture")
+  .select("totale, stato");
+
       const { data: ultimi } = await supabase
         .from("preventivi")
         .select("id, cliente, totale, stato, created_at")
@@ -44,6 +51,16 @@ export default function DashboardPage() {
         .limit(5);
 
       const lista = preventiviData || [];
+
+      const listaFatture = fattureData || [];
+
+const totaleIncassato = listaFatture
+  .filter((f) => f.stato === "Pagata")
+  .reduce((acc, f) => acc + Number(f.totale), 0);
+
+const totaleDaIncassare = listaFatture
+  .filter((f) => f.stato === "Emessa")
+  .reduce((acc, f) => acc + Number(f.totale), 0);
 
       const totalePreventivi = lista.reduce(
         (acc, p) => acc + Number(p.totale),
@@ -73,6 +90,10 @@ export default function DashboardPage() {
         numeroPreventivi > 0 ? (numeroAccettati / numeroPreventivi) * 100 : 0
       );
       setUltimiPreventivi(ultimi || []);
+
+      setFatture(listaFatture.length);
+      setIncassato(totaleIncassato);
+      setDaIncassare(totaleDaIncassare);
     }
 
     caricaDati();
@@ -109,14 +130,21 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border p-6">
+<div
+  className="mt-10"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: "16px",
+  }}
+>
+            <div className="rounded-2xl border p-4">
             <div className="text-3xl">👥</div>
             <p className="mt-4 text-sm font-medium text-gray-500">Clienti</p>
             <p className="mt-2 text-4xl font-bold text-gray-900">{clienti}</p>
           </div>
 
-          <div className="rounded-2xl border p-6">
+          <div className="rounded-2xl border p-4">
             <div className="text-3xl">📑</div>
             <p className="mt-4 text-sm font-medium text-gray-500">Preventivi</p>
             <p className="mt-2 text-4xl font-bold text-gray-900">
@@ -124,7 +152,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border p-6">
+          <div className="rounded-2xl border p-4">
             <div className="text-3xl">💶</div>
             <p className="mt-4 text-sm font-medium text-gray-500">
               Valore preventivi
@@ -135,7 +163,11 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <h2 className="mt-16 mb-6 text-center text-xl font-bold text-gray-700">
+  Performance
+</h2>
+
+<div className="mt-16 grid gap-6 md:grid-cols-2">          
           <div className="rounded-2xl border p-8">
             <p className="text-sm font-semibold text-gray-500">
               💰 Valore preventivi accettati
@@ -161,42 +193,97 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <h2 className="mt-10 text-center text-2xl font-bold">
+        <div className="mx-auto mt-10 grid max-w-4xl gap-6 md:grid-cols-3">
+
+<div className="rounded-2xl border p-5 text-center">
+      <div className="text-3xl">🧾</div>
+    <p className="mt-4 text-sm text-gray-500">
+      Fatture emesse
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      {fatture}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-3xl">💰</div>
+    <p className="mt-4 text-sm text-gray-500">
+      Incassato
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      € {incassato.toFixed(2)}
+    </p>
+  </div>
+
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-3xl">⏳</div>
+    <p className="mt-4 text-sm text-gray-500">
+      Da incassare
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      € {daIncassare.toFixed(2)}
+    </p>
+  </div>
+
+</div>
+
+        <h2 className="mt-16 text-center text-2xl font-bold">
           Stato preventivi
         </h2>
 
-        <div className="mx-auto mt-6 grid w-full max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border p-8 text-center">
-            <div className="text-4xl">📄</div>
-            <p className="mt-3 text-sm font-medium text-gray-500">Bozze</p>
-            <p className="mt-2 text-5xl font-bold text-gray-900">{bozze}</p>
-          </div>
+<div
+  className="mx-auto mt-20 max-w-2xl"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "16px",
+  }}
+>
 
-          <div className="rounded-2xl border p-8 text-center">
-            <div className="text-4xl">📤</div>
-            <p className="mt-3 text-sm font-medium text-gray-500">Inviati</p>
-            <p className="mt-2 text-5xl font-bold text-gray-900">{inviati}</p>
-          </div>
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-4xl">📄</div>
+    <p className="mt-3 text-sm font-medium text-gray-500">
+      Bozze
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      {bozze}
+    </p>
+  </div>
 
-          <div className="rounded-2xl border p-8 text-center">
-            <div className="text-4xl">✅</div>
-            <p className="mt-3 text-sm font-medium text-gray-500">Accettati</p>
-            <p className="mt-2 text-5xl font-bold text-gray-900">
-              {accettati}
-            </p>
-          </div>
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-4xl">📤</div>
+    <p className="mt-3 text-sm font-medium text-gray-500">
+      Inviati
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      {inviati}
+    </p>
+  </div>
 
-          <div className="rounded-2xl border p-8 text-center">
-            <div className="text-4xl">❌</div>
-            <p className="mt-3 text-sm font-medium text-gray-500">Rifiutati</p>
-            <p className="mt-2 text-5xl font-bold text-gray-900">
-              {rifiutati}
-            </p>
-          </div>
-        </div>
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-4xl">✅</div>
+    <p className="mt-3 text-sm font-medium text-gray-500">
+      Accettati
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      {accettati}
+    </p>
+  </div>
 
-        <div className="mt-12 rounded-2xl border p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div className="rounded-2xl border p-5 text-center">
+    <div className="text-4xl">❌</div>
+    <p className="mt-3 text-sm font-medium text-gray-500">
+      Rifiutati
+    </p>
+    <p className="mt-2 text-4xl font-bold text-gray-900">
+      {rifiutati}
+    </p>
+  </div>
+
+</div>
+
+<div className="mt-20 rounded-2xl border p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold">Ultimi preventivi</h2>
               <p className="mt-1 text-sm text-gray-500">
@@ -306,6 +393,20 @@ export default function DashboardPage() {
   >
     ➕ Nuovo preventivo
   </a>
+
+<a
+  href="/fatture"
+  style={{
+    backgroundColor: "#f97316",
+    color: "white",
+    padding: "12px 24px",
+    borderRadius: "12px",
+    fontWeight: "bold",
+    textDecoration: "none",
+  }}
+>
+  🧾 Fatture
+</a>
 
   <a
     href="/impostazioni"
