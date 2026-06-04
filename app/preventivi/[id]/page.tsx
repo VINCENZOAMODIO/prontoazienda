@@ -204,80 +204,59 @@ Cordiali saluti.`;
 
   window.location.href = `/preventivi/${data.id}`;
 }
+async function generaNumeroFattura() {
+  const anno = new Date().getFullYear();
 
-async function creaFattura() {
-  if (!preventivo) return;
-
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from("fatture")
-    .select("*", { count: "exact", head: true });
-
-  const prossimoNumero = (count || 0) + 1;
-
-  const numeroFattura =
-    "FAT-" + String(prossimoNumero).padStart(4, "0");
-
-  const { data, error } = await supabase
-    .from("fatture")
-    .insert([
-      {
-        numero: numeroFattura,
-        cliente: preventivo.cliente,
-        descrizione: preventivo.descrizione,
-        prezzo: preventivo.prezzo,
-        iva: preventivo.iva,
-        totale: preventivo.totale,
-        stato: "Emessa",
-      },
-    ])
-    .select()
-    .single();
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", `${anno}-01-01`)
+    .lt("created_at", `${anno + 1}-01-01`);
 
   if (error) {
-    alert("Errore creazione fattura: " + error.message);
-    return;
+    throw error;
   }
 
-  window.location.href = `/fatture/${data.id}`;
+  const progressivo = String((count || 0) + 1).padStart(3, "0");
+
+  return `FAT-${anno}-${progressivo}`;
 }
 
 async function convertiInFattura() {
   if (!preventivo) return;
 
-  const { count } = await supabase
-    .from("fatture")
-    .select("*", { count: "exact", head: true });
+  try {
+    const numeroFattura = await generaNumeroFattura();
 
-  const prossimoNumero = (count || 0) + 1;
-  const numeroFattura = `FAT-${String(prossimoNumero).padStart(4, "0")}`;
+    const { data, error } = await supabase
+      .from("fatture")
+      .insert([
+        {
+          numero: numeroFattura,
+          preventivo_id: preventivo.id,
+          cliente_id: preventivo.cliente_id,
+          cliente: preventivo.cliente,
+          descrizione: preventivo.descrizione,
+          prezzo: preventivo.prezzo,
+          iva: preventivo.iva,
+          totale: preventivo.totale,
+          stato: "Emessa",
+        },
+      ])
+      .select()
+      .single();
 
-  const { data, error } = await supabase
-    .from("fatture")
-    .insert([
-      {
-        numero: numeroFattura,
-        preventivo_id: preventivo.id,
-        cliente_id: preventivo.cliente_id,
-        cliente: preventivo.cliente,
-        descrizione: preventivo.descrizione,
-        prezzo: preventivo.prezzo,
-        iva: preventivo.iva,
-        totale: preventivo.totale,
-        stato: "Emessa",
-      },
-    ])
-    .select()
-    .single();
+    if (error) {
+      alert("Errore conversione in fattura: " + error.message);
+      return;
+    }
 
-  if (error) {
-    alert("Errore creazione fattura: " + error.message);
-    return;
+    alert(`Preventivo convertito nella fattura ${numeroFattura}`);
+
+    window.location.href = `/fatture/${data.id}`;
+  } catch (error: any) {
+    alert("Errore generazione numero fattura: " + error.message);
   }
-
-  alert(`Fattura ${numeroFattura} creata con successo`);
-
-  // per ora rimaniamo nella pagina
-  console.log(data);
 }
 
   async function eliminaPreventivo() {
@@ -412,7 +391,7 @@ async function convertiInFattura() {
 
             <button
   type="button"
-  onClick={creaFattura}
+onClick={convertiInFattura}
   style={{
     backgroundColor: "#f97316",
     color: "white",
@@ -422,7 +401,7 @@ async function convertiInFattura() {
     width: "100%",
   }}
 >
-  🧾 Crea fattura
+  🧾 Converti in fattura
 </button>
 
             <button
@@ -431,14 +410,6 @@ async function convertiInFattura() {
   className="w-full rounded-xl border border-blue-300 px-6 py-3 font-semibold text-blue-600 hover:bg-blue-50"
 >
   📄 Duplica preventivo
-</button>
-
-<button
-  type="button"
-  onClick={convertiInFattura}
-  className="w-full rounded-xl border border-green-300 px-6 py-3 font-semibold text-green-600 hover:bg-green-50"
->
-  🧾 Converti in fattura
 </button>
 
             <a
