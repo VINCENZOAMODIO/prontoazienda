@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Home() {
@@ -10,6 +10,29 @@ export default function Home() {
   const [whatsapp, setWhatsapp] = useState("");
   const [messaggio, setMessaggio] = useState("");
   const [loading, setLoading] = useState(false);
+  const [utente, setUtente] = useState<any>(null);
+
+  useEffect(() => {
+    async function controllaUtente() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setUtente(session?.user ?? null);
+    }
+
+    controllaUtente();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUtente(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   async function salvaLead() {
     setMessaggio("");
@@ -47,6 +70,70 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
+      <header className="flex items-center justify-between px-6 py-4">
+        <a href="/" className="text-xl font-bold text-gray-900">
+          ProntoAzienda
+        </a>
+
+        {utente ? (
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-gray-600 sm:inline">
+              {utente.email}
+            </span>
+
+            <a
+              href="/dashboard"
+              className="rounded-xl border border-gray-300 px-4 py-2 font-semibold hover:bg-gray-50"
+            >
+              Dashboard
+            </a>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                setUtente(null);
+                window.location.href = "/";
+              }}
+              style={{
+                backgroundColor: "#dc2626",
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "12px",
+                fontWeight: "bold",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <a
+              href="/login"
+              className="rounded-xl border border-gray-300 px-4 py-2 font-semibold hover:bg-gray-50"
+            >
+              Login
+            </a>
+
+            <a
+              href="/registrati"
+              style={{
+                backgroundColor: "#2563eb",
+                color: "white",
+                padding: "8px 16px",
+                borderRadius: "12px",
+                fontWeight: "bold",
+                textDecoration: "none",
+              }}
+            >
+              Registrati
+            </a>
+          </div>
+        )}
+      </header>
+
       <section className="mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 text-center">
         <div className="mb-6 rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
           Per artigiani, elettricisti, idraulici e piccoli professionisti
@@ -62,33 +149,53 @@ export default function Home() {
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a
-            href="/preventivo"
-            className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
-          >
-            Crea un preventivo
-          </a>
+          {utente ? (
+            <>
+              <a
+                href="/preventivo"
+                className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+              >
+                Crea un preventivo
+              </a>
 
-          <a
-            href="/preventivi"
-            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
-          >
-            Vedi preventivi
-          </a>
+              <a
+                href="/preventivi"
+                className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+              >
+                Vedi preventivi
+              </a>
 
-          <a
-            href="/dashboard"
-            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
-          >
-            Dashboard
-          </a>
+              <a
+                href="/dashboard"
+                className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+              >
+                Dashboard
+              </a>
 
-          <a
-            href="/clienti"
-            className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
-          >
-            Clienti
-          </a>
+              <a
+                href="/clienti"
+                className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+              >
+                Clienti
+              </a>
+            </>
+          ) : (
+            <>
+              <a
+                href="#prova"
+                className="rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+              >
+                Candidati come tester
+              </a>
+
+              <a
+                href="/registrati"
+                className="rounded-xl border border-gray-300 px-6 py-3 font-semibold hover:bg-gray-50"
+              >
+                Crea account
+              </a>
+            </>
+          )}
         </div>
 
         <div
@@ -156,6 +263,7 @@ export default function Home() {
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
             />
+            
 
             <button
               type="button"
@@ -173,37 +281,54 @@ export default function Home() {
             )}
           </div>
         </div>
+
         <footer className="mt-20 w-full border-t pt-8 text-center text-sm text-gray-500">
-  <p className="font-semibold text-gray-700">
-    ProntoAzienda
-  </p>
+          <p className="font-semibold text-gray-700">ProntoAzienda</p>
 
-  <p className="mt-2">
-    Gestionale per professionisti, artigiani e piccole imprese.
-  </p>
+          <p className="mt-2">
+            Gestionale per professionisti, artigiani e piccole imprese.
+          </p>
 
-  <div className="mt-4 flex flex-wrap justify-center gap-6">
-    <a href="/preventivo" className="hover:text-blue-600">
-      Preventivi
-    </a>
+          <div className="mt-4 flex flex-wrap justify-center gap-6">
+            {utente ? (
+              <>
+                <a href="/preventivo" className="hover:text-blue-600">
+                  Preventivi
+                </a>
 
-    <a href="/clienti" className="hover:text-blue-600">
-      Clienti
-    </a>
+                <a href="/clienti" className="hover:text-blue-600">
+                  Clienti
+                </a>
 
-    <a href="/dashboard" className="hover:text-blue-600">
-      Dashboard
-    </a>
+                <a href="/dashboard" className="hover:text-blue-600">
+                  Dashboard
+                </a>
 
-    <a href="/impostazioni" className="hover:text-blue-600">
-      Impostazioni
-    </a>
-  </div>
+                <a href="/impostazioni" className="hover:text-blue-600">
+                  Impostazioni
+                </a>
+              </>
+            ) : (
+              <>
+                <a href="/login" className="hover:text-blue-600">
+                  Login
+                </a>
 
-  <p className="mt-6 text-xs text-gray-400">
-    © 2025 ProntoAzienda - Versione 1.0
-  </p>
-</footer>
+                <a href="/registrati" className="hover:text-blue-600">
+                  Registrati
+                </a>
+
+                <a href="#prova" className="hover:text-blue-600">
+                  Prova gratis
+                </a>
+              </>
+            )}
+          </div>
+
+          <p className="mt-6 text-xs text-gray-400">
+            © 2025 ProntoAzienda - Versione 1.0
+          </p>
+        </footer>
       </section>
     </main>
   );

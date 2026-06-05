@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import jsPDF from "jspdf";
 import { supabase } from "@/lib/supabase";
+import { richiediLogin } from "@/lib/auth";
 
 type Cliente = {
   id: string;
@@ -19,7 +20,7 @@ type Impostazioni = {
   indirizzo: string | null;
 };
 
-export default function PreventivoPage() {
+function PreventivoContent() {
   const searchParams = useSearchParams();
   const clienteIdUrl = searchParams.get("clienteId");
 
@@ -40,10 +41,17 @@ export default function PreventivoPage() {
 
   useEffect(() => {
     async function caricaDati() {
-      const { data: clientiData, error: clientiError } = await supabase
-        .from("clienti")
-        .select("*")
-        .order("created_at", { ascending: false });
+
+      const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
+const { data: clientiData, error: clientiError } = await supabase
+  .from("clienti")
+  .select("*")
+  .eq("user_id", user.id)
+  .order("created_at", { ascending: false });
 
       if (!clientiError) {
         const clientiCaricati = clientiData || [];
@@ -61,11 +69,12 @@ export default function PreventivoPage() {
         }
       }
 
-      const { data: impostazioniData } = await supabase
-        .from("impostazioni")
-        .select("*")
-        .limit(1)
-        .single();
+const { data: impostazioniData } = await supabase
+  .from("impostazioni")
+  .select("*")
+  .eq("user_id", user.id)
+  .limit(1)
+  .single();
 
       if (impostazioniData) {
         setImpostazioni(impostazioniData);
@@ -98,9 +107,16 @@ export default function PreventivoPage() {
   }
 
   async function scaricaPDF() {
+
+    const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
     const { count } = await supabase
-      .from("preventivi")
-      .select("*", { count: "exact", head: true });
+  .from("preventivi")
+  .select("*", { count: "exact", head: true })
+  .eq("user_id", user.id);
 
     const prossimoNumero = (count || 0) + 1;
     const numeroPreventivo = `PREV-${String(prossimoNumero).padStart(4, "0")}`;
@@ -163,6 +179,7 @@ export default function PreventivoPage() {
 
     const { error } = await supabase.from("preventivi").insert([
       {
+        user_id: user.id,
         numero: numeroPreventivo,
         cliente: cliente || "Nome cliente",
         cliente_id: clienteId || null,
@@ -342,5 +359,13 @@ export default function PreventivoPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PreventivoPage() {
+  return (
+    <Suspense fallback={<div className="p-10">Caricamento...</div>}>
+      <PreventivoContent />
+    </Suspense>
   );
 }

@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { richiediLogin } from "@/lib/auth";
 import jsPDF from "jspdf";
 
 type Fattura = {
   id: string;
+  user_id: string;
   numero: string;
   cliente_id: string | null;
   cliente: string;
@@ -47,10 +49,17 @@ export default function DettaglioFatturaPage() {
 
   useEffect(() => {
     async function caricaDati() {
-      const { data: fatturaData, error: fatturaError } = await supabase
+  const user = await richiediLogin();
+
+  if (!user) {
+    return;
+  }
+
+  const { data: fatturaData, error: fatturaError } = await supabase
         .from("fatture")
         .select("*")
         .eq("id", id)
+        .eq("user_id", user.id)
         .single();
 
       if (!fatturaError && fatturaData) {
@@ -61,6 +70,7 @@ export default function DettaglioFatturaPage() {
             .from("clienti")
             .select("*")
             .eq("id", fatturaData.cliente_id)
+            .eq("user_id", user.id)
             .single();
 
           if (!clienteError) {
@@ -70,10 +80,11 @@ export default function DettaglioFatturaPage() {
       }
 
       const { data: impostazioniData } = await supabase
-        .from("impostazioni")
-        .select("*")
-        .limit(1)
-        .single();
+            .from("impostazioni")
+            .select("*")
+            .eq("user_id", user.id)
+            .limit(1)
+            .single();
 
       if (impostazioniData) {
         setImpostazioni(impostazioniData);
@@ -108,7 +119,8 @@ export default function DettaglioFatturaPage() {
     const { error } = await supabase
       .from("fatture")
       .update({ stato })
-      .eq("id", fattura.id);
+      .eq("id", fattura.id)
+    .eq("user_id", fattura.user_id);
 
     if (error) {
       console.error(error);
@@ -132,7 +144,8 @@ export default function DettaglioFatturaPage() {
       .update({
         scadenza: scadenza || null,
       })
-      .eq("id", fattura.id);
+      .eq("id", fattura.id)
+      .eq("user_id", fattura.user_id)
 
     setSalvandoScadenza(false);
 
@@ -289,7 +302,8 @@ Cordiali saluti.`;
     const { error } = await supabase
       .from("fatture")
       .delete()
-      .eq("id", fattura.id);
+      .eq("id", fattura.id)
+      .eq("user_id", fattura.user_id);
 
     if (error) {
       alert(error.message);

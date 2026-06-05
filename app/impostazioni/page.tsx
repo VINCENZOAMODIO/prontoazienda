@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { richiediLogin } from "@/lib/auth";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 export default function ImpostazioniPage() {
   const [nomeAzienda, setNomeAzienda] = useState("");
@@ -11,6 +14,12 @@ export default function ImpostazioniPage() {
 
   useEffect(() => {
     async function caricaImpostazioni() {
+
+      const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
       const { data } = await supabase
         .from("impostazioni")
         .select("*")
@@ -71,11 +80,12 @@ export default function ImpostazioniPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
-      <div className="mx-auto max-w-3xl">
-        <a href="/dashboard" className="text-blue-600">
-          ← Torna alla dashboard
-        </a>
+<main className="min-h-screen bg-white text-gray-900">
+  <Navbar />
+
+  <div className="px-6 py-10">
+          <div className="mx-auto max-w-3xl">
+
 
         <h1 className="mt-6 text-4xl font-bold text-gray-900">
           Impostazioni azienda
@@ -125,6 +135,8 @@ export default function ImpostazioniPage() {
           </div>
         </div>
       </div>
+      </div>
+      <Footer />
     </main>
   );
 }

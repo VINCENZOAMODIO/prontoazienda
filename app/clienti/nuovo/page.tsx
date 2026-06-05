@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { richiediLogin } from "@/lib/auth";
 
 export default function NuovoClientePage() {
   const [nome, setNome] = useState("");
@@ -18,14 +19,22 @@ export default function NuovoClientePage() {
 
     setLoading(true);
 
-    const { error } = await supabase.from("clienti").insert([
-      {
-        nome,
-        telefono,
-        email,
-        note,
-      },
-    ]);
+    const user = await richiediLogin();
+
+if (!user) {
+  setLoading(false);
+  return;
+}
+
+const { error } = await supabase.from("clienti").insert([
+  {
+    user_id: user.id,
+    nome,
+    telefono,
+    email,
+    note,
+  },
+]);
 
     setLoading(false);
 

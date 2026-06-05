@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { richiediLogin } from "@/lib/auth";
 import jsPDF from "jspdf";
 
 type Preventivo = {
   id: string;
+  user_id: string;
   cliente: string;
   cliente_id: string | null;
   descrizione: string;
@@ -38,11 +40,18 @@ export default function DettaglioPreventivo() {
 
   useEffect(() => {
     async function caricaPreventivo() {
-      const { data, error } = await supabase
-        .from("preventivi")
-        .select("*")
-        .eq("id", id)
-        .single();
+  const user = await richiediLogin();
+
+  if (!user) {
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("preventivi")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single();
 
       if (error) {
         console.error(error);
@@ -55,10 +64,11 @@ export default function DettaglioPreventivo() {
 
       if (data.cliente_id) {
         const { data: clienteData, error: clienteError } = await supabase
-          .from("clienti")
-          .select("*")
-          .eq("id", data.cliente_id)
-          .single();
+        .from("clienti")
+        .select("*")
+        .eq("id", data.cliente_id)
+        .eq("user_id", user.id)
+        .single();
 
         if (!clienteError) {
           setClienteCollegato(clienteData);
@@ -163,7 +173,8 @@ Cordiali saluti.`;
     const { error } = await supabase
       .from("preventivi")
       .update({ stato: nuovoStato })
-      .eq("id", preventivo.id);
+      .eq("id", preventivo.id)
+      .eq("user_id", preventivo.user_id);
 
     setSalvandoStato(false);
 
@@ -185,6 +196,8 @@ Cordiali saluti.`;
     .from("preventivi")
     .insert([
       {
+        
+        user_id: preventivo.user_id,
         cliente: preventivo.cliente,
         cliente_id: preventivo.cliente_id,
         descrizione: preventivo.descrizione,
@@ -204,12 +217,13 @@ Cordiali saluti.`;
 
   window.location.href = `/preventivi/${data.id}`;
 }
-async function generaNumeroFattura() {
+async function generaNumeroFattura(userId: string) {
   const anno = new Date().getFullYear();
 
   const { count, error } = await supabase
     .from("fatture")
     .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
     .gte("created_at", `${anno}-01-01`)
     .lt("created_at", `${anno + 1}-01-01`);
 
@@ -226,12 +240,18 @@ async function convertiInFattura() {
   if (!preventivo) return;
 
   try {
-    const numeroFattura = await generaNumeroFattura();
+const user = await richiediLogin();
 
+if (!user) {
+  return;
+}
+
+const numeroFattura = await generaNumeroFattura(user.id);
     const { data, error } = await supabase
       .from("fatture")
       .insert([
         {
+          user_id: user.id,
           numero: numeroFattura,
           preventivo_id: preventivo.id,
           cliente_id: preventivo.cliente_id,
@@ -269,7 +289,8 @@ async function convertiInFattura() {
     const { error } = await supabase
       .from("preventivi")
       .delete()
-      .eq("id", preventivo.id);
+      .eq("id", preventivo.id)
+      .eq("user_id", preventivo.user_id);
 
     if (error) {
       alert("Errore eliminazione: " + error.message);

@@ -1,7 +1,11 @@
 "use client";
 
+import { richiediLogin } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 type Fattura = {
   id: string;
@@ -20,10 +24,17 @@ export default function FatturePage() {
 
   useEffect(() => {
     async function caricaFatture() {
+
+        const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
       const { data, error } = await supabase
-        .from("fatture")
-        .select("*")
-        .order("created_at", { ascending: false });
+.from("fatture")
+.select("*")
+.eq("user_id", user.id)
+.order("created_at", { ascending: false });
 
       if (error) {
         alert("Errore caricamento fatture: " + error.message);
@@ -64,6 +75,27 @@ export default function FatturePage() {
     );
   });
 
+  function esportaFattureExcel() {
+    const dati = fattureFiltrate.map((fattura) => ({
+      Numero: fattura.numero || "",
+      Cliente: fattura.cliente || "",
+      Totale: Number(fattura.totale || 0),
+      Scadenza: fattura.scadenza
+        ? new Date(fattura.scadenza).toLocaleDateString("it-IT")
+        : "Non indicata",
+      Stato: testoStato(fattura),
+      Data: fattura.created_at
+        ? new Date(fattura.created_at).toLocaleDateString("it-IT")
+        : "",
+    }));
+
+    const foglio = XLSX.utils.json_to_sheet(dati);
+    const file = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(file, foglio, "Fatture");
+    XLSX.writeFile(file, "fatture.xlsx");
+  }
+
   function classeStato(fattura: Fattura) {
     if (fatturaScaduta(fattura)) return "bg-red-100 text-red-700";
     if (fattura.stato === "Pagata") return "bg-green-100 text-green-700";
@@ -83,11 +115,12 @@ export default function FatturePage() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
-      <div className="mx-auto max-w-6xl">
-        <a href="/" className="text-sm font-medium text-blue-600">
-          ← Torna alla home
-        </a>
+<main className="min-h-screen bg-white text-gray-900">
+  <Navbar />
+
+  <div className="px-6 py-10">
+          <div className="mx-auto max-w-6xl">
+
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -97,6 +130,24 @@ export default function FatturePage() {
               Elenco di tutte le fatture emesse.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={esportaFattureExcel}
+            disabled={fattureFiltrate.length === 0}
+            style={{
+              backgroundColor:
+                fattureFiltrate.length === 0 ? "#d1d5db" : "#16a34a",
+              color: "white",
+              padding: "12px 24px",
+              borderRadius: "12px",
+              fontWeight: "bold",
+              border: "none",
+              cursor: fattureFiltrate.length === 0 ? "not-allowed" : "pointer",
+            }}
+          >
+            📊 Esporta Excel
+          </button>
         </div>
 
         <div className="mt-8">
@@ -181,6 +232,8 @@ export default function FatturePage() {
           )}
         </div>
       </div>
+      </div>
+      <Footer />
     </main>
   );
 }

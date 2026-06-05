@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
+import { richiediLogin } from "@/lib/auth";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 type Preventivo = {
   id: string;
@@ -21,10 +25,17 @@ export default function PreventiviPage() {
 
   useEffect(() => {
     async function caricaPreventivi() {
+
+      const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
       const { data, error } = await supabase
-        .from("preventivi")
-        .select("*")
-        .order("created_at", { ascending: false });
+.from("preventivi")
+.select("*")
+.eq("user_id", user.id)
+.order("created_at", { ascending: false });
 
       if (error) {
         alert("Errore caricamento preventivi: " + error.message);
@@ -49,6 +60,26 @@ export default function PreventiviPage() {
     );
   });
 
+  function esportaPreventiviExcel() {
+    const dati = preventiviFiltrati.map((preventivo) => ({
+      Cliente: preventivo.cliente || "",
+      Descrizione: preventivo.descrizione || "",
+      Imponibile: Number(preventivo.prezzo || 0),
+      IVA: `${preventivo.iva || 0}%`,
+      Totale: Number(preventivo.totale || 0),
+      Stato: preventivo.stato || "Bozza",
+      Data: preventivo.created_at
+        ? new Date(preventivo.created_at).toLocaleDateString("it-IT")
+        : "",
+    }));
+
+    const foglio = XLSX.utils.json_to_sheet(dati);
+    const file = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(file, foglio, "Preventivi");
+    XLSX.writeFile(file, "preventivi.xlsx");
+  }
+
   function classeStato(stato: string | null) {
     if (stato === "Accettato") return "bg-green-100 text-green-700";
     if (stato === "Rifiutato") return "bg-red-100 text-red-700";
@@ -57,11 +88,10 @@ export default function PreventiviPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
-      <div className="mx-auto max-w-5xl">
-        <a href="/" className="text-sm font-medium text-blue-600">
-          ← Torna alla home
-        </a>
+<main className="min-h-screen bg-white text-gray-900">
+  <Navbar />
+
+  <div className="px-6 py-10">      <div className="mx-auto max-w-5xl">
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -72,12 +102,33 @@ export default function PreventiviPage() {
             </p>
           </div>
 
-          <a
-            href="/preventivo"
-            className="rounded-xl bg-blue-600 px-6 py-3 text-center font-semibold text-white hover:bg-blue-700"
-          >
-            Crea nuovo preventivo
-          </a>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={esportaPreventiviExcel}
+              disabled={preventiviFiltrati.length === 0}
+              style={{
+                backgroundColor:
+                  preventiviFiltrati.length === 0 ? "#d1d5db" : "#16a34a",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "12px",
+                fontWeight: "bold",
+                border: "none",
+                cursor:
+                  preventiviFiltrati.length === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              📊 Esporta Excel
+            </button>
+
+            <a
+              href="/preventivo"
+              className="rounded-xl bg-blue-600 px-6 py-3 text-center font-semibold text-white hover:bg-blue-700"
+            >
+              Crea nuovo preventivo
+            </a>
+          </div>
         </div>
 
         <div className="mt-8">
@@ -153,6 +204,8 @@ export default function PreventiviPage() {
           )}
         </div>
       </div>
+      </div>
+      <Footer />
     </main>
   );
 }

@@ -1,7 +1,11 @@
 "use client";
 
+import { richiediLogin } from "@/lib/auth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import * as XLSX from "xlsx";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 type Cliente = {
   id: string;
@@ -18,10 +22,17 @@ export default function ClientiPage() {
 
   useEffect(() => {
     async function caricaClienti() {
+
+      const user = await richiediLogin();
+
+if (!user) {
+  return;
+}
       const { data, error } = await supabase
-        .from("clienti")
-        .select("*")
-        .order("created_at", { ascending: false });
+.from("clienti")
+.select("*")
+.eq("user_id", user.id)
+.order("created_at", { ascending: false });
 
       if (error) {
         alert(error.message);
@@ -45,9 +56,26 @@ export default function ClientiPage() {
     );
   });
 
+  function esportaClientiExcel() {
+    const dati = clientiFiltrati.map((cliente) => ({
+      Nome: cliente.nome || "",
+      Telefono: cliente.telefono || "",
+      Email: cliente.email || "",
+      Note: cliente.note || "",
+    }));
+
+    const foglio = XLSX.utils.json_to_sheet(dati);
+    const file = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(file, foglio, "Clienti");
+    XLSX.writeFile(file, "clienti.xlsx");
+  }
+
   return (
-    <main className="min-h-screen bg-white px-6 py-10 text-gray-900">
-      <div className="mx-auto max-w-5xl">
+<main className="min-h-screen bg-white text-gray-900">
+  <Navbar />
+
+  <div className="px-6 py-10">      <div className="mx-auto max-w-5xl">
         <a href="/" className="text-blue-600">
           ← Torna alla home
         </a>
@@ -60,12 +88,31 @@ export default function ClientiPage() {
             </p>
           </div>
 
-          <a
-            href="/clienti/nuovo"
-            className="rounded-xl bg-blue-600 px-6 py-3 text-center font-semibold text-white hover:bg-blue-700"
-          >
-            Nuovo cliente
-          </a>
+          <div className="flex flex-col gap-3 sm:flex-row">
+ <button
+  type="button"
+  onClick={esportaClientiExcel}
+  disabled={clientiFiltrati.length === 0}
+  style={{
+    backgroundColor: clientiFiltrati.length === 0 ? "#d1d5db" : "#16a34a",
+    color: "white",
+    padding: "12px 24px",
+    borderRadius: "12px",
+    fontWeight: "bold",
+    border: "none",
+    cursor: clientiFiltrati.length === 0 ? "not-allowed" : "pointer",
+  }}
+>
+  📊 Esporta Excel
+</button>
+
+            <a
+              href="/clienti/nuovo"
+              className="rounded-xl bg-blue-600 px-6 py-3 text-center font-semibold text-white hover:bg-blue-700"
+            >
+              Nuovo cliente
+            </a>
+          </div>
         </div>
 
         <div className="mt-8">
@@ -119,6 +166,8 @@ export default function ClientiPage() {
           )}
         </div>
       </div>
+      </div>
+      <Footer />
     </main>
   );
 }
