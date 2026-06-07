@@ -188,6 +188,10 @@ export default function Navbar() {
           <a href="/impostazioni" className="hover:text-blue-600">
             Impostazioni
           </a>
+
+          <a href="/upgrade" className="hover:text-blue-600">
+  Upgrade
+</a>
         </nav>
 
         <div className="flex items-center gap-3">
