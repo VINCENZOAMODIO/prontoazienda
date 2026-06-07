@@ -33,6 +33,7 @@ type Impostazioni = {
   email: string | null;
   telefono: string | null;
   indirizzo: string | null;
+  logo_url: string | null;
 };
 
 export default function DettaglioFatturaPage() {
@@ -214,27 +215,37 @@ Cordiali saluti.`;
 
     const nomeAzienda = impostazioni?.nome_azienda || "ProntoAzienda";
 
-    const doc = new jsPDF();
+const logoUrl = impostazioni?.logo_url || null;
 
-    doc.setFontSize(20);
-    doc.text(nomeAzienda, 20, 22);
+ const doc = new jsPDF();
+
+if (logoUrl) {
+  try {
+    doc.addImage(logoUrl, "PNG", 20, 15, 38, 20);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+doc.setFontSize(20);
+doc.text(nomeAzienda, logoUrl ? 65 : 20, 22);
 
     doc.setFontSize(10);
 
     let rigaInfo = 30;
 
     if (impostazioni?.email) {
-      doc.text(`Email: ${impostazioni.email}`, 20, rigaInfo);
+      doc.text(`Email: ${impostazioni.email}`, logoUrl ? 65 : 20, rigaInfo);
       rigaInfo += 6;
     }
 
     if (impostazioni?.telefono) {
-      doc.text(`Tel: ${impostazioni.telefono}`, 20, rigaInfo);
+      doc.text(`Tel: ${impostazioni.telefono}`, logoUrl ? 65 : 20, rigaInfo);
       rigaInfo += 6;
     }
 
     if (impostazioni?.indirizzo) {
-      doc.text(`Indirizzo: ${impostazioni.indirizzo}`, 20, rigaInfo);
+      doc.text(`Indirizzo: ${impostazioni.indirizzo}`, logoUrl ? 65 : 20, rigaInfo);
     }
 
     doc.setFontSize(24);

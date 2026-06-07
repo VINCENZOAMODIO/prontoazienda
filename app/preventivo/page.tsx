@@ -18,6 +18,7 @@ type Impostazioni = {
   email: string | null;
   telefono: string | null;
   indirizzo: string | null;
+  logo_url: string | null;
 };
 
 function PreventivoContent() {
@@ -32,7 +33,6 @@ function PreventivoContent() {
   const [descrizione, setDescrizione] = useState("");
   const [prezzo, setPrezzo] = useState("");
   const [iva, setIva] = useState("22");
-  const [logo, setLogo] = useState<string | null>(null);
 
   const imponibile = Number(prezzo) || 0;
   const ivaNumero = Number(iva) || 0;
@@ -94,18 +94,6 @@ const { data: impostazioniData } = await supabase
     }
   }
 
-  function caricaLogo(file: File | null) {
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      setLogo(reader.result as string);
-    };
-
-    reader.readAsDataURL(file);
-  }
-
   async function scaricaPDF() {
 
     const user = await richiediLogin();
@@ -113,43 +101,55 @@ const { data: impostazioniData } = await supabase
 if (!user) {
   return;
 }
-    const { count } = await supabase
+
+const anno = new Date().getFullYear();
+
+const { count } = await supabase
   .from("preventivi")
   .select("*", { count: "exact", head: true })
-  .eq("user_id", user.id);
+  .eq("user_id", user.id)
+  .gte("created_at", `${anno}-01-01`)
+  .lt("created_at", `${anno + 1}-01-01`);
 
-    const prossimoNumero = (count || 0) + 1;
-    const numeroPreventivo = `PREV-${String(prossimoNumero).padStart(4, "0")}`;
-
+const prossimoNumero = (count || 0) + 1;
+const numeroPreventivo = `PREV-${anno}-${String(prossimoNumero).padStart(
+  3,
+  "0"
+)}`;
     const nomeAzienda = impostazioni?.nome_azienda || "ProntoAzienda";
 
-    const doc = new jsPDF();
+    const logoUrl = impostazioni?.logo_url || null;
+const doc = new jsPDF();
 
-    if (logo) {
-      doc.addImage(logo, "PNG", 20, 15, 28, 28);
-    }
+if (logoUrl) {
+  try {
+    doc.addImage(logoUrl, "PNG", 20, 15, 38, 28);
+  } catch (error) {
+    console.error("Errore inserimento logo PDF:", error);
+  }
+}
 
-    doc.setFontSize(20);
-    doc.text(nomeAzienda, logo ? 55 : 20, 22);
+doc.setFontSize(20);
+doc.text(nomeAzienda, logoUrl ? 65 : 20, 22);
 
     doc.setFontSize(10);
 
     let rigaInfo = 30;
 
     if (impostazioni?.email) {
-      doc.text(`Email: ${impostazioni.email}`, logo ? 55 : 20, rigaInfo);
+      doc.text(`Email: ${impostazioni.email}`, logoUrl ? 65 : 20, rigaInfo);
       rigaInfo += 6;
     }
 
     if (impostazioni?.telefono) {
-      doc.text(`Tel: ${impostazioni.telefono}`, logo ? 55 : 20, rigaInfo);
+      doc.text(`Tel: ${impostazioni.telefono}`, logoUrl ? 65 : 20, rigaInfo);
       rigaInfo += 6;
     }
 
     if (impostazioni?.indirizzo) {
       doc.text(
         `Indirizzo: ${impostazioni.indirizzo}`,
-        logo ? 55 : 20,
+        logoUrl ? 65 : 20,
         rigaInfo
       );
     }
@@ -232,13 +232,6 @@ if (!user) {
                 </a>
               </div>
 
-              <input
-                className="rounded-xl border bg-white px-4 py-3"
-                type="file"
-                accept="image/png, image/jpeg"
-                onChange={(e) => caricaLogo(e.target.files?.[0] || null)}
-              />
-
               <select
                 className="rounded-xl border px-4 py-3"
                 value={clienteId}
@@ -303,16 +296,16 @@ if (!user) {
             </div>
 
             <div className="mt-6 space-y-5">
-              {logo && (
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Logo</p>
-                  <img
-                    src={logo}
-                    alt="Logo azienda"
-                    className="mt-2 h-16 w-16 rounded-xl border object-contain"
-                  />
-                </div>
-              )}
+{impostazioni?.logo_url && (
+  <div>
+    <p className="text-sm font-medium text-gray-500">Logo</p>
+    <img
+      src={impostazioni.logo_url}
+      alt="Logo azienda"
+      className="mt-2 h-16 w-16 rounded-xl border object-contain"
+    />
+  </div>
+)}
 
               <div>
                 <p className="text-sm font-medium text-gray-500">Cliente</p>
