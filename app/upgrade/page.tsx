@@ -56,7 +56,7 @@ export default function UpgradePage() {
             </p>
 
             <p className="mt-6 text-4xl font-extrabold">
-              €9
+              €5
               <span className="text-base font-medium text-gray-500"> / mese</span>
             </p>
 
